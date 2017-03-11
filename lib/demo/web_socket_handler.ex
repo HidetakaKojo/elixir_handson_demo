@@ -6,17 +6,18 @@ defmodule Demo.WebSocketHandler do
   end
 
   def terminate(_reason, _req, _opts) do
-    Phoenix.PubSub.unsubscribe(:chat_pubsub, "mytopic")
+    :pg2.leave("mytopic", self())
     :ok
   end
 
   def websocket_init(opts) do
-    Phoenix.PubSub.subscribe(:chat_pubsub, "mytopic")
+    :pg2.join("mytopic", self())
     {:ok ,opts}
   end
 
   def websocket_handle({:text, content}, opts) do
-    Phoenix.PubSub.broadcast(:chat_pubsub, "mytopic", {:text, content})
+    :pg2.get_members("mytopic")
+      |> Enum.each(&(send(&1, {:text, content})))
     {:ok, opts}
   end
   def websocket_handle(_frame, opts) do
